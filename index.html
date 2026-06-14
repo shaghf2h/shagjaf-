@@ -1,0 +1,491 @@
+
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>الأميرة وفارِسِها</title>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: radial-gradient(ellipse at center, #2a1500 0%, #0d0600 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Amiri', 'Scheherazade New', serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .hint {
+      color: rgba(196,150,74,0.6);
+      font-size: 13px;
+      font-family: 'Amiri', serif;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+
+    .scene {
+      width: 340px;
+      height: 500px;
+      perspective: 1800px;
+      position: relative;
+    }
+
+    .book-stack {
+      position: absolute;
+      inset: 0;
+      border-radius: 4px 14px 14px 4px;
+      background: #e8d5b0;
+      box-shadow: -6px 6px 30px rgba(0,0,0,0.5);
+    }
+    .book-stack::before {
+      content: '';
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 26px;
+      background: linear-gradient(to left, #a07040, #e8d5b0, #a07040);
+      border-radius: 0 14px 14px 0;
+    }
+
+    .page-wrap {
+      position: absolute;
+      inset: 0;
+      transform-origin: right center;
+      transform-style: preserve-3d;
+      transition: transform 0.7s cubic-bezier(0.645, 0.045, 0.355, 1.000);
+      cursor: grab;
+    }
+
+    .page-wrap.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .page-wrap.dragging {
+      transition: none;
+      cursor: grabbing;
+    }
+
+    .page-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 4px 14px 14px 4px;
+      overflow: hidden;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .page-front { background: #fff9f2; }
+    .page-back  { background: #fff3e8; transform: rotateY(180deg); }
+
+    .page-face::after {
+      content: '';
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 26px;
+      background: linear-gradient(to left, #a07040, #e8d5b0, #a07040);
+      border-radius: 0 14px 14px 0;
+    }
+
+    .fold-shadow {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(to right, rgba(0,0,0,0.18) 0%, transparent 40%);
+      pointer-events: none;
+      border-radius: 4px 0 0 4px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .page-inner {
+      padding: 2rem 2.5rem 3rem 1.8rem;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .ornament {
+      font-size: 16px;
+      color: #9b7b4a;
+      letter-spacing: 6px;
+      margin-bottom: 0.3rem;
+    }
+
+    .divider {
+      width: 50%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, #c4964a, transparent);
+      margin: 0.5rem auto;
+    }
+
+    .page-num {
+      position: absolute;
+      bottom: 0.8rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 13px;
+      color: #b09060;
+    }
+
+    .cover-bg {
+      background: linear-gradient(160deg, #1a0a00 0%, #3d1c00 40%, #6b3410 70%, #3d1c00 100%) !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 2.5rem 2rem 1.8rem;
+    }
+
+    .cover-img {
+      width: 160px;
+      height: 190px;
+      border: 2px solid #c4964a;
+      border-radius: 6px;
+      object-fit: cover;
+      margin-bottom: 1.2rem;
+    }
+
+    .cover-icon-box {
+      width: 160px;
+      height: 190px;
+      border: 2px solid #c4964a;
+      border-radius: 6px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      color: #c4964a;
+      margin-bottom: 1.2rem;
+    }
+
+    .cover-title {
+      font-family: 'Scheherazade New', serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: #f5dfa0;
+      text-align: center;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    }
+
+    .cover-line {
+      width: 80px;
+      height: 1px;
+      background: #c4964a;
+      margin: 0.6rem auto;
+    }
+
+    .cover-deco { font-size: 16px; color: #c4964a; letter-spacing: 8px; }
+
+    .dedication-to   { font-size: 13px; color: #7a5c3a; text-align: center; }
+    .dedication-name { font-size: 22px; font-weight: 700; color: #4a2c0e; text-align: center; }
+    .dedication-desc { font-size: 13px; color: #9b7b4a; text-align: center; margin-bottom: 1rem; }
+
+    .poem-box {
+      background: rgba(196,150,74,0.07);
+      border-right: 3px solid #c4964a;
+      border-radius: 0 6px 6px 0;
+      padding: 0.9rem 1.1rem;
+      width: 100%;
+      text-align: center;
+    }
+
+    .poem-line {
+      font-size: 16px;
+      color: #3d1c00;
+      line-height: 2;
+      font-style: italic;
+    }
+
+    .body-text {
+      font-size: 16px;
+      color: #3a1e00;
+      line-height: 2.2;
+      text-align: center;
+      width: 100%;
+    }
+
+    .verse { margin-bottom: 0.1rem; }
+
+    .dots-bar {
+      display: flex;
+      gap: 7px;
+      margin-top: 14px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(196,150,74,0.3);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .dot.active { background: #c4964a; }
+  </style>
+</head>
+<body>
+
+<p class="hint">اسحب الصفحة يساراً أو يميناً للتنقل</p>
+
+<div class="scene" id="scene">
+  <div class="book-stack"></div>
+
+  <div class="page-wrap" id="pw0">
+    <div class="page-face page-front cover-bg" id="pf0"></div>
+    <div class="page-face page-back" id="pb0"></div>
+    <div class="fold-shadow" id="fs0"></div>
+  </div>
+  <div class="page-wrap" id="pw1">
+    <div class="page-face page-front" id="pf1"></div>
+    <div class="page-face page-back" id="pb1"></div>
+    <div class="fold-shadow" id="fs1"></div>
+  </div>
+  <div class="page-wrap" id="pw2">
+    <div class="page-face page-front" id="pf2"></div>
+    <div class="page-face page-back" id="pb2"></div>
+    <div class="fold-shadow" id="fs2"></div>
+  </div>
+  <div class="page-wrap" id="pw3">
+    <div class="page-face page-front" id="pf3"></div>
+    <div class="page-face page-back" id="pb3"></div>
+    <div class="fold-shadow" id="fs3"></div>
+  </div>
+  <div class="page-wrap" id="pw4">
+    <div class="page-face page-front" id="pf4"></div>
+    <div class="page-face page-back" id="pb4"></div>
+    <div class="fold-shadow" id="fs4"></div>
+  </div>
+</div>
+
+<div class="dots-bar" id="dotsBar"></div>
+
+<script>
+const pages = [
+  `<div class="cover-bg page-inner" style="height:100%;">
+    <img src="index.jpg" alt="الأميرة وفارسها" class="cover-img"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+    <div class="cover-icon-box">♔</div>
+    <div class="cover-title">الأميرة وفارِسِها</div>
+    <div class="cover-line"></div>
+    <div class="cover-deco">✦ ✦ ✦</div>
+  </div>`,
+
+  `<div class="page-inner">
+    <div class="ornament">✦ ✦ ✦</div>
+    <div class="divider"></div>
+    <div style="margin-bottom:1rem;text-align:center;">
+      <div class="dedication-to">إلى نسنوستي</div>
+      <div class="dedication-name">حودي</div>
+      <div class="dedication-desc">ذو العيون الجميله</div>
+    </div>
+    <div class="poem-box">
+      <div class="poem-line">إلأعُيُونَك إنتِ ذُول بَس</div>
+      <div class="poem-line">اللي خَذُوني خَذُوني</div>
+      <div class="poem-line">وبحُبَك أمَروني</div>
+      <div class="poem-line">إلأعُيونَك إنتِ</div>
+    </div>
+    <div class="divider" style="margin-top:auto;"></div>
+    <div class="page-num">١</div>
+  </div>`,
+
+  `<div class="page-inner">
+    <div class="ornament">✦</div>
+    <div class="divider"></div>
+    <div class="body-text" style="margin-top:2.5rem;">
+      <div class="verse">وَيَراكِ بَعض الناسِ شخصاً عابِراً</div>
+      <div class="verse" style="margin-top:1rem;">وأنا اراكِ</div>
+      <div class="verse">حَبيبَتي</div>
+      <div class="verse">ومَلاكي</div>
+    </div>
+    <div class="divider" style="margin-top:auto;"></div>
+    <div class="page-num">٢</div>
+  </div>`,
+
+  `<div class="page-inner">
+    <div class="ornament">✦</div>
+    <div class="divider"></div>
+    <div class="body-text" style="margin-top:2rem;">
+      <div class="verse">كُبَر حُبي ومله قَلبي</div>
+      <div class="verse">وصرت دنياي كلها انتَ!</div>
+      <div style="margin-top:1.2rem;" class="verse">يا شَمعه</div>
+      <div class="verse">ونورت دَربي</div>
+    </div>
+    <div class="divider" style="margin-top:auto;"></div>
+    <div class="page-num">٣</div>
+  </div>`,
+
+  `<div class="page-inner">
+    <div class="ornament">✦</div>
+    <div class="divider"></div>
+    <div class="body-text" style="margin-top:0.3rem;font-size:15px;line-height:2.1;">
+      <div class="verse">جا شَرد اكلك بعد؟</div>
+      <div class="verse">واندهلك بيا صفه</div>
+      <div class="verse">وانت اقرب من النفس!</div>
+      <div class="verse">ومن شفتك انه الحزن</div>
+      <div class="verse">من كل حياتي اختفه</div>
+      <div class="verse">ياسلوتي ومنيتي!</div>
+      <div class="verse">يابسمتي ودمعتي</div>
+      <div class="verse">يامالك العاطفه</div>
+      <div class="verse">ياا اترف من الورد</div>
+      <div class="verse">بس يَمك انت انسعد</div>
+      <div class="verse">من مرني طيفك برد</div>
+      <div class="verse">حطني على ثلجك دفه</div>
+    </div>
+    <div class="divider" style="margin-top:0.3rem;"></div>
+    <div class="page-num">٤</div>
+  </div>`,
+
+  `<div class="page-inner">
+    <div class="ornament">✦</div>
+    <div class="divider"></div>
+    <div class="body-text" style="margin-top:1rem;font-size:15px;line-height:2.2;">
+      <div class="verse">جا شرد اكلك بعد؟</div>
+      <div class="verse">واندهلك بيا صفه!</div>
+      <div class="verse">وعيوني لوشافتك</div>
+      <div class="verse">تفترسك من الولع</div>
+      <div class="verse">جن بيك متحلفه!</div>
+      <div style="margin-top:1rem;" class="verse">ونوعين هو العشق</div>
+      <div class="verse">لو نسمه لو عاطفه</div>
+      <div style="margin-top:1.2rem;font-size:13px;color:#9b7b4a;font-style:italic;">— لحد هنا كافي —</div>
+    </div>
+    <div class="divider" style="margin-top:auto;"></div>
+    <div class="page-num">٥</div>
+  </div>`
+];
+
+const TOTAL = pages.length;
+let currentPage = 0;
+
+for (let i = 0; i < 5; i++) {
+  document.getElementById('pf' + i).innerHTML = pages[i];
+  document.getElementById('pb' + i).innerHTML = pages[i + 1];
+}
+
+function updateStack() {
+  for (let i = 0; i < 5; i++) {
+    const pw = document.getElementById('pw' + i);
+    const isFlipped = currentPage > i;
+    pw.style.zIndex = isFlipped ? i : 10 + (4 - i);
+  }
+}
+
+function updateDots() {
+  document.querySelectorAll('.dot').forEach((d, i) => {
+    d.classList.toggle('active', i === currentPage);
+  });
+}
+
+const dotsBar = document.getElementById('dotsBar');
+for (let i = 0; i < TOTAL; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goToPage(i);
+  dotsBar.appendChild(d);
+}
+
+function goToPage(target) {
+  if (target === currentPage) return;
+  const dir = target > currentPage ? 1 : -1;
+  function step() {
+    if (currentPage === target) return;
+    if (dir === 1) flipForward();
+    else flipBack();
+    if (currentPage !== target) setTimeout(step, 120);
+  }
+  step();
+}
+
+function flipForward() {
+  if (currentPage >= TOTAL - 1) return;
+  const pw = document.getElementById('pw' + currentPage);
+  pw.classList.add('flipped');
+  currentPage++;
+  updateStack();
+  updateDots();
+}
+
+function flipBack() {
+  if (currentPage <= 0) return;
+  const pw = document.getElementById('pw' + (currentPage - 1));
+  pw.classList.remove('flipped');
+  currentPage--;
+  updateStack();
+  updateDots();
+}
+
+updateStack();
+
+const scene = document.getElementById('scene');
+let startX = 0, startY = 0, dragging = false, dragPW = null, dragDir = 0;
+
+function onStart(x, y) { startX = x; startY = y; dragging = true; dragDir = 0; }
+
+function onMove(x, y) {
+  if (!dragging) return;
+  const dx = x - startX;
+  const dy = y - startY;
+  if (dragDir === 0) {
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+    dragDir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? -1 : 1) : 0;
+    if (dragDir === 0) { dragging = false; return; }
+  }
+  if (dragDir === -1) {
+    dragPW = currentPage < TOTAL - 1 ? document.getElementById('pw' + currentPage) : null;
+  } else {
+    dragPW = currentPage > 0 ? document.getElementById('pw' + (currentPage - 1)) : null;
+  }
+  if (!dragPW) return;
+  dragPW.classList.add('dragging');
+  let angle;
+  if (dragDir === -1) {
+    angle = Math.max(-180, Math.min(0, (dx / scene.offsetWidth) * 180));
+  } else {
+    angle = Math.max(0, Math.min(180, 180 + (dx / scene.offsetWidth) * 180));
+  }
+  dragPW.style.transform = `rotateY(${angle}deg)`;
+  const fs = dragPW.querySelector('.fold-shadow');
+  if (fs) fs.style.opacity = Math.sin((Math.abs(angle) / 180) * Math.PI) * 0.6;
+}
+
+function onEnd(x) {
+  if (!dragging) return;
+  dragging = false;
+  const dx = x - startX;
+  if (dragPW) {
+    dragPW.classList.remove('dragging');
+    dragPW.style.transform = '';
+    const fs = dragPW.querySelector('.fold-shadow');
+    if (fs) fs.style.opacity = 0;
+    dragPW = null;
+  }
+  const threshold = scene.offsetWidth * 0.25;
+  if (dragDir === -1 && dx < -threshold) flipForward();
+  else if (dragDir === 1 && dx > threshold) flipBack();
+  dragDir = 0;
+}
+
+scene.addEventListener('touchstart', e => onStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+scene.addEventListener('touchmove',  e => onMove(e.touches[0].clientX, e.touches[0].clientY),  { passive: true });
+scene.addEventListener('touchend',   e => onEnd(e.changedTouches[0].clientX));
+scene.addEventListener('mousedown',  e => onStart(e.clientX, e.clientY));
+window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+window.addEventListener('mouseup',   e => onEnd(e.clientX));
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft')  flipForward();
+  if (e.key === 'ArrowRight') flipBack();
+});
+</script>
+
+</body>
+</html>
+```
+
